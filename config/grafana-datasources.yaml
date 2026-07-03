@@ -1,0 +1,56 @@
+apiVersion: 1
+
+datasources:
+  - name: Mimir - team-frontend
+    type: prometheus
+    access: proxy
+    url: http://mimir:9009/prometheus
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+    secureJsonData:
+      httpHeaderValue1: "team-frontend"
+
+  - name: Mimir - team-backend
+    type: prometheus
+    access: proxy
+    url: http://mimir:9009/prometheus
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+    secureJsonData:
+      httpHeaderValue1: "team-backend"
+
+  - name: Loki - team-frontend
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+    secureJsonData:
+      httpHeaderValue1: "team-frontend"
+
+  - name: Loki - team-backend
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+    secureJsonData:
+      httpHeaderValue1: "team-backend"
+
+  - name: Tempo - team-frontend
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+    secureJsonData:
+      httpHeaderValue1: "team-frontend"
+
+  - name: Tempo - team-backend
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+    secureJsonData:
+      httpHeaderValue1: "team-backend"

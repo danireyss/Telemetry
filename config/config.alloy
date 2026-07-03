@@ -1,0 +1,69 @@
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+    logs    = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    metrics = [otelcol.exporter.otlphttp.mimir_frontend.input, otelcol.exporter.otlphttp.mimir_backend.input]
+    logs    = [otelcol.exporter.otlphttp.loki_frontend.input, otelcol.exporter.otlphttp.loki_backend.input]
+    traces  = [otelcol.exporter.otlp.tempo_frontend.input, otelcol.exporter.otlp.tempo_backend.input]
+  }
+}
+otelcol.exporter.otlphttp "mimir_frontend" {
+  client {
+    endpoint = "http://mimir:9009/otlp"
+    headers  = {"X-Scope-OrgID" = "team-frontend"}
+  }
+}
+
+otelcol.exporter.otlphttp "mimir_backend" {
+  client {
+    endpoint = "http://mimir:9009/otlp"
+    headers  = {"X-Scope-OrgID" = "team-backend"}
+  }
+}
+
+otelcol.exporter.otlphttp "loki_frontend" {
+  client {
+    endpoint = "http://loki:3100/otlp"
+    headers  = {"X-Scope-OrgID" = "team-frontend"}
+  }
+}
+
+otelcol.exporter.otlphttp "loki_backend" {
+  client {
+    endpoint = "http://loki:3100/otlp"
+    headers  = {"X-Scope-OrgID" = "team-backend"}
+  }
+}
+
+otelcol.exporter.otlp "tempo_frontend" {
+  client {
+    endpoint = "tempo:4317"
+    headers  = {"X-Scope-OrgID" = "team-frontend"}
+    tls {
+      insecure = true
+    }
+  }
+}
+
+otelcol.exporter.otlp "tempo_backend" {
+  client {
+    endpoint = "tempo:4317"
+    headers  = {"X-Scope-OrgID" = "team-backend"}
+    tls {
+      insecure = true
+    }
+  }
+}

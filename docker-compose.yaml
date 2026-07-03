@@ -1,0 +1,84 @@
+services:
+  mimir:
+    image: grafana/mimir:2.15.0
+    command: ["--config.file=/etc/mimir/mimir.yaml"]
+    volumes:
+      - ./config/mimir.yaml:/etc/mimir/mimir.yaml
+      - mimir-data:/tmp/mimir
+    ports:
+      - "9009:9009"
+
+  loki:
+    image: grafana/loki:3.7.3
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./config/loki.yaml:/etc/loki/loki.yaml
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+
+  tempo:
+    image: grafana/tempo:2.7.2
+    command: ["-target=all", "-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./config/tempo.yaml:/etc/tempo/tempo.yaml
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"
+      - "4320:4317"
+      - "4321:4318"
+  alloy:
+    image: grafana/alloy:v1.17.1
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
+    volumes:
+      - ./config/config.alloy:/etc/alloy/config.alloy
+    ports:
+      - "12345:12345"
+      - "4317:4317"
+    depends_on:
+      - mimir
+      - loki
+      - tempo
+
+  grafana:
+    image: grafana/grafana:13.1.0
+    volumes:
+      - ./config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mimir
+      - loki
+      - tempo
+  team-frontend:
+    build:
+      context: ./apps/frontend
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
+      - OTEL_SERVICE_NAME=frontend-api
+      - OTEL_RESOURCE_ATTRIBUTES=service.namespace=team-frontend
+    depends_on:
+      - alloy
+
+  team-backend:
+    build:
+      context: ./apps/backend
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
+      - OTEL_SERVICE_NAME=batch-processor
+      - OTEL_RESOURCE_ATTRIBUTES=service.namespace=team-backend
+    depends_on:
+      - alloy
+
+volumes:
+  mimir-data:
+  loki-data:
+  tempo-data:
