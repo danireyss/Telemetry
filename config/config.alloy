@@ -1,3 +1,71 @@
+// A tenant's pipeline: keeps only telemetry whose service.namespace resource attribute matches the
+// tenant ID, then sends it to Mimir, Loki, and Tempo under that ID in the X-Scope-OrgID header.
+declare "tenant" {
+  argument "id" {
+    comment = "Tenant ID, matched against service.namespace."
+  }
+
+  otelcol.processor.filter "default" {
+    error_mode = "ignore"
+
+    traces {
+      span = [string.format(`resource.attributes["service.namespace"] != %q`, argument.id.value)]
+    }
+    metrics {
+      metric = [string.format(`resource.attributes["service.namespace"] != %q`, argument.id.value)]
+    }
+    logs {
+      log_record = [string.format(`resource.attributes["service.namespace"] != %q`, argument.id.value)]
+    }
+
+    output {
+      metrics = [otelcol.exporter.otlphttp.mimir.input]
+      logs    = [otelcol.exporter.otlphttp.loki.input]
+      traces  = [otelcol.exporter.otlp.tempo.input]
+    }
+  }
+
+  otelcol.exporter.otlphttp "mimir" {
+    client {
+      endpoint = "http://mimir:9009/otlp"
+      headers  = {"X-Scope-OrgID" = argument.id.value}
+    }
+  }
+
+  otelcol.exporter.otlphttp "loki" {
+    client {
+      endpoint = "http://loki:3100/otlp"
+      headers  = {"X-Scope-OrgID" = argument.id.value}
+    }
+  }
+
+  otelcol.exporter.otlp "tempo" {
+    client {
+      endpoint = "tempo:4317"
+      headers  = {"X-Scope-OrgID" = argument.id.value}
+      tls {
+        insecure = true
+      }
+    }
+  }
+
+  export "input" {
+    value = otelcol.processor.filter.default.input
+  }
+}
+
+tenant "team_frontend" {
+  id = "team-frontend"
+}
+
+tenant "team_backend" {
+  id = "team-backend"
+}
+
+tenant "portfolio" {
+  id = "portfolio"
+}
+
 otelcol.receiver.otlp "default" {
   grpc {
     endpoint = "0.0.0.0:4317"
@@ -13,57 +81,11 @@ otelcol.receiver.otlp "default" {
   }
 }
 
+// Every tenant sees all telemetry and keeps its own; anything without a known namespace is dropped.
 otelcol.processor.batch "default" {
   output {
-    metrics = [otelcol.exporter.otlphttp.mimir_frontend.input, otelcol.exporter.otlphttp.mimir_backend.input]
-    logs    = [otelcol.exporter.otlphttp.loki_frontend.input, otelcol.exporter.otlphttp.loki_backend.input]
-    traces  = [otelcol.exporter.otlp.tempo_frontend.input, otelcol.exporter.otlp.tempo_backend.input]
-  }
-}
-otelcol.exporter.otlphttp "mimir_frontend" {
-  client {
-    endpoint = "http://mimir:9009/otlp"
-    headers  = {"X-Scope-OrgID" = "team-frontend"}
-  }
-}
-
-otelcol.exporter.otlphttp "mimir_backend" {
-  client {
-    endpoint = "http://mimir:9009/otlp"
-    headers  = {"X-Scope-OrgID" = "team-backend"}
-  }
-}
-
-otelcol.exporter.otlphttp "loki_frontend" {
-  client {
-    endpoint = "http://loki:3100/otlp"
-    headers  = {"X-Scope-OrgID" = "team-frontend"}
-  }
-}
-
-otelcol.exporter.otlphttp "loki_backend" {
-  client {
-    endpoint = "http://loki:3100/otlp"
-    headers  = {"X-Scope-OrgID" = "team-backend"}
-  }
-}
-
-otelcol.exporter.otlp "tempo_frontend" {
-  client {
-    endpoint = "tempo:4317"
-    headers  = {"X-Scope-OrgID" = "team-frontend"}
-    tls {
-      insecure = true
-    }
-  }
-}
-
-otelcol.exporter.otlp "tempo_backend" {
-  client {
-    endpoint = "tempo:4317"
-    headers  = {"X-Scope-OrgID" = "team-backend"}
-    tls {
-      insecure = true
-    }
+    metrics = [tenant.team_frontend.input, tenant.team_backend.input, tenant.portfolio.input]
+    logs    = [tenant.team_frontend.input, tenant.team_backend.input, tenant.portfolio.input]
+    traces  = [tenant.team_frontend.input, tenant.team_backend.input, tenant.portfolio.input]
   }
 }

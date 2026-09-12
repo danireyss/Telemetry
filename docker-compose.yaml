@@ -39,6 +39,7 @@ services:
     ports:
       - "12345:12345"
       - "4317:4317"
+      - "4318:4318"
     depends_on:
       - mimir
       - loki
@@ -48,6 +49,8 @@ services:
     image: grafana/grafana:13.1.0
     volumes:
       - ./config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./config/grafana-dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+      - ./config/dashboards:/etc/grafana/dashboards
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin

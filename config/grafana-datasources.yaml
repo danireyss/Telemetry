@@ -19,6 +19,18 @@ datasources:
     secureJsonData:
       httpHeaderValue1: "team-backend"
 
+  - name: Mimir - portfolio
+    uid: mimir-portfolio
+    type: prometheus
+    access: proxy
+    url: http://mimir:9009/prometheus
+    jsonData:
+      # The OpenTelemetry SDK's default metric export interval, so $__rate_interval spans four exports.
+      timeInterval: "60s"
+      httpHeaderName1: "X-Scope-OrgID"
+    secureJsonData:
+      httpHeaderValue1: "portfolio"
+
   - name: Loki - team-frontend
     type: loki
     access: proxy
@@ -37,6 +49,15 @@ datasources:
     secureJsonData:
       httpHeaderValue1: "team-backend"
 
+  - name: Loki - portfolio
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+    secureJsonData:
+      httpHeaderValue1: "portfolio"
+
   - name: Tempo - team-frontend
     type: tempo
     access: proxy
@@ -54,3 +75,12 @@ datasources:
       httpHeaderName1: "X-Scope-OrgID"
     secureJsonData:
       httpHeaderValue1: "team-backend"
+
+  - name: Tempo - portfolio
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+    secureJsonData:
+      httpHeaderValue1: "portfolio"
